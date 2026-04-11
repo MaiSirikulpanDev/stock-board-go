@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"math/rand"
-	"stock-board-go/internal/models"
+	"stock-board-go/internal/stock/models"
 	"time"
 )
 
