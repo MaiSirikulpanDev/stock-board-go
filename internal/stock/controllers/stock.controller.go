@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
+	"stock-board-go/internal/stock/models"
 	"stock-board-go/internal/stock/services"
+	"sync"
 )
 
 type StockController interface {
-	GetStock(w http.ResponseWriter, r *http.Request)
+	GetStock(symbol string, wg *sync.WaitGroup, c chan<- models.Stock)
 }
 
 type stockController struct {
@@ -18,19 +18,13 @@ func NewStockController(stockService services.StockService) StockController {
 	return &stockController{stockService: stockService}
 }
 
-func (c *stockController) GetStock(w http.ResponseWriter, r *http.Request) {
-	ticker := r.URL.Query().Get("ticker")
-	if ticker == "" {
-		http.Error(w, "ticker is required", http.StatusBadRequest)
-		return
-	}
+func (controller *stockController) GetStock(symbol string, wg *sync.WaitGroup, c chan<- models.Stock) {
+	defer wg.Done()
 
-	stock, err := c.stockService.GetStock(ticker)
+	stock, err := controller.stockService.GetStock(symbol)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stock)
+	c <- stock
 }
