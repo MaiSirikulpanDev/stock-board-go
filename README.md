@@ -5,6 +5,7 @@ A CLI application that fetches and displays real-time stock prices using the Fin
 ## 🚀 Features
 
 - **Real-time Data**: Fetches live stock prices from the Finnhub API.
+- **Database Storage**: Saves the fetched stock prices into a Supabase (PostgreSQL) database.
 - **Concurrency**: Uses Goroutines and WaitGroups to fetch multiple stock prices concurrently.
 - **Auto Refresh**: Automatically updates and displays prices every 10 seconds.
 - **Clean Architecture**: Separates concerns into Controllers, Services, Repositories, and Models.
@@ -13,6 +14,7 @@ A CLI application that fetches and displays real-time stock prices using the Fin
 
 - **Go 1.25.1**
 - **godotenv** (for environment variable management)
+- **lib/pq** (PostgreSQL driver for database connections)
 
 ## 📂 Project Structure
 
@@ -28,7 +30,7 @@ stock-board-go/
 │       ├── models/
 │       │   └── stock.go            # Data structures
 │       ├── repositories/
-│       │   └── stock.repository.go # Data access layer (currently maps data to models)
+│       │   └── stock.repository.go # Data access layer (saves data to PostgreSQL)
 │       └── services/
 │           └── stock.service.go    # Business logic and external API calls (Finnhub)
 ├── .env                            # Environment variables
@@ -62,6 +64,22 @@ stock-board-go/
    
    # Authentication 
    FINNHUB_API_KEY="your_finnhub_api_key_here"
+
+   # Supabase Database Configuration
+   DB_HOST=your_supabase_host
+   DB_PORT=5432
+   DB_USER=postgres
+   DB_PASSWORD=your_password
+   DB_NAME=postgres
+   ```
+
+   **Database Setup:** Ensure you have created the `stock_prices` table in your database:
+   ```sql
+   CREATE TABLE stock_prices (
+     ticker VARCHAR(10) NOT NULL,
+     price NUMERIC NOT NULL,
+     last_update TIMESTAMP NOT NULL
+   );
    ```
 
 ## 🏃‍♂️ Running the Application
@@ -99,7 +117,7 @@ This application follows a **Clean Architecture** pattern adapted for a CLI tool
 
 3. **Repository Layer** (`internal/stock/repositories`)
    - Abstracts data creation and storage.
-   - Currently implements a mock storage that maps the fetched price to the `Stock` model.
+   - Connects to the PostgreSQL (Supabase) database to persist the fetched `Stock` models using `database/sql`.
 
 4. **Model Layer** (`internal/stock/models`)
    - Defines the core data structures (`structs`) used throughout the application.
