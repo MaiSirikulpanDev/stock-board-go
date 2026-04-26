@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"stock-board-go/internal/stock/models"
 	"stock-board-go/internal/stock/repositories"
+	"time"
 )
 
 type StockService interface {
@@ -15,17 +15,24 @@ type StockService interface {
 }
 
 type stockService struct {
+	apiUrl    string
+	apiKey    string
+	client    *http.Client
 	stockRepo repositories.StockRepository
 }
 
-func NewStockService(stockRepo repositories.StockRepository) StockService {
-	return &stockService{stockRepo: stockRepo}
+func NewStockService(apiUrl, apiKey string, stockRepo repositories.StockRepository) StockService {
+	return &stockService{
+		apiUrl:    apiUrl,
+		apiKey:    apiKey,
+		client:    &http.Client{Timeout: 10 * time.Second},
+		stockRepo: stockRepo,
+	}
 }
 
 func (s *stockService) GetStock(symbol string) (models.Stock, error) {
-	apiUrl := os.Getenv("API_URL")
-	url := fmt.Sprintf("%s?symbol=%s&token=%s", apiUrl, symbol, os.Getenv("FINNHUB_API_KEY"))
-	resp, err := http.Get(url)
+	url := fmt.Sprintf("%s?symbol=%s&token=%s", s.apiUrl, symbol, s.apiKey)
+	resp, err := s.client.Get(url)
 	if err != nil {
 		log.Println("Error Fetching:", symbol, err)
 		return models.Stock{}, err
