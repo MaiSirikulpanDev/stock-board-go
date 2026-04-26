@@ -1,24 +1,31 @@
 package repositories
 
 import (
+	"database/sql"
+	"fmt"
 	"stock-board-go/internal/stock/models"
-	"time"
 )
 
 type StockRepository interface {
-	GetStock(ticker string, price float64) (*models.Stock, error)
+	SaveStock(stock *models.Stock) error
 }
 
-type stockRepository struct{}
-
-func NewStockRepository() StockRepository {
-	return &stockRepository{}
+type stockRepository struct {
+	db *sql.DB
 }
 
-func (r *stockRepository) GetStock(ticker string, price float64) (*models.Stock, error) {
-	return &models.Stock{
-		Ticker:     ticker,
-		Price:      price,
-		LastUpdate: time.Now(),
-	}, nil
+func NewStockRepository(db *sql.DB) StockRepository {
+	return &stockRepository{db: db}
+}
+
+func (r *stockRepository) SaveStock(stock *models.Stock) error {
+	query := `
+		INSERT INTO stock_prices (ticker, price, last_update)
+		VALUES ($1, $2, $3)
+	`
+	_, err := r.db.Exec(query, stock.Ticker, stock.Price, stock.LastUpdate)
+	if err != nil {
+		return fmt.Errorf("failed to save stock: %w", err)
+	}
+	return nil
 }

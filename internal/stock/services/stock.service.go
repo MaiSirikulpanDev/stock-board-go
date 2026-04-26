@@ -52,10 +52,16 @@ func (s *stockService) GetStock(symbol string) (models.Stock, error) {
 		return models.Stock{}, err
 	}
 
-	stock, err := s.stockRepo.GetStock(symbol, result.CurrentPrice)
-	if err != nil {
+	stock := models.Stock{
+		Ticker:     symbol,
+		Price:      result.CurrentPrice,
+		LastUpdate: time.Now(),
+	}
+
+	if err := s.stockRepo.SaveStock(&stock); err != nil {
+		log.Println("Error Saving:", symbol, err)
 		return models.Stock{}, err
 	}
 
-	return *stock, nil
+	return stock, nil
 }

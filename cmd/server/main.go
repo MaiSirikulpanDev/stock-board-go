@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func fetchAndPrintStocks(symbols []string, stockController controllers.StockController) {
@@ -48,12 +50,28 @@ func main() {
 	apiUrl := os.Getenv("API_URL")
 	apiKey := os.Getenv("FINNHUB_API_KEY")
 	symbolStr := os.Getenv("SYMBOL")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
 
-	if apiUrl == "" || apiKey == "" || symbolStr == "" {
-		log.Fatal("Missing required environment variables: API_URL, FINNHUB_API_KEY, or SYMBOL")
+	if apiUrl == "" || apiKey == "" || symbolStr == "" || dbHost == "" || dbPort == "" || dbUser == "" || dbPassword == "" || dbName == "" {
+		log.Fatal("Missing required environment variables. Please check your .env file.")
 	}
 
-	stockRepo := repositories.NewStockRepository()
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require", dbHost, dbPort, dbUser, dbPassword, dbName)
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		log.Fatal("Failed to ping database:", err)
+	}
+
+	stockRepo := repositories.NewStockRepository(db)
 	stockService := services.NewStockService(apiUrl, apiKey, stockRepo)
 	stockController := controllers.NewStockController(stockService)
 
