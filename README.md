@@ -1,42 +1,42 @@
 # Stock Board Go
 
-API สำหรับแสดงราคาหุ้นแบบ Real-time โดยใช้เทคโนโลยี WebSocket เพื่อให้ Dashboard สามารถแสดงผลข้อมูลที่อัปเดตทันทีที่ราคาหุ้นเปลี่ยนแปลง
+A CLI application that fetches and displays real-time stock prices using the Finnhub API. It uses Goroutines to concurrently fetch data for multiple stock symbols and updates the console every 10 seconds.
 
 ## 🚀 Features
 
-- **WebSocket Support**: รองรับการเชื่อมต่อแบบ Real-time ผ่าน WebSocket
-- **Mock Data**: ใช้ข้อมูลจำลอง (Mock Data) สำหรับการทดสอบและพัฒนา
-- **Concurrency**: จัดการการเชื่อมต่อหลาย Client พร้อมกันด้วย Goroutines
-- **Clean Architecture**: แยกส่วน Repository และ Handler อย่างชัดเจน
+- **Real-time Data**: Fetches live stock prices from the Finnhub API.
+- **Concurrency**: Uses Goroutines and WaitGroups to fetch multiple stock prices concurrently.
+- **Auto Refresh**: Automatically updates and displays prices every 10 seconds.
+- **Clean Architecture**: Separates concerns into Controllers, Services, Repositories, and Models.
 
 ## 🛠️ Tech Stack
 
 - **Go 1.25.1**
-- **Gin Framework** (สำหรับ HTTP Routing)
-- **Gorilla WebSocket** (สำหรับ WebSocket)
+- **godotenv** (for environment variable management)
 
 ## 📂 Project Structure
 
-```
+```text
 stock-board-go/
 ├── cmd/
 │   └── server/
-│       └── main.go          # จุดเริ่มต้นของแอปพลิเคชัน
+│       └── main.go                 # Application entry point
 ├── internal/
 │   └── stock/
 │       ├── controllers/
-│       │   └── stock.controller.go # จัดการ HTTP Requests และ WebSocket Connections
+│       │   └── stock.controller.go # Handles requests from main and calls services
 │       ├── models/
-│       │   └── stock.model.go   # โครงสร้างข้อมูล (Structs)
+│       │   └── stock.go            # Data structures
 │       ├── repositories/
-│       │   └── stock.repository.go # จัดการการดึงข้อมูล (Mock)
+│       │   └── stock.repository.go # Data access layer (currently maps data to models)
 │       └── services/
-│           └── stock.service.go # จัดการ Logic ของ API
+│           └── stock.service.go    # Business logic and external API calls (Finnhub)
+├── .env                            # Environment variables
 ├── go.mod
 └── README.md
 ```
 
-## ⚙️ Installation
+## ⚙️ Setup and Installation
 
 1. **Clone Repository**
 
@@ -46,97 +46,63 @@ stock-board-go/
    ```
 
 2. **Initialize Go Modules**
+
    ```bash
    go mod tidy
    ```
 
-## 🏃‍♂️ Running the Server
+3. **Environment Variables**
+
+   Create a `.env` file in the root directory and provide your Finnhub API key and desired symbols:
+
+   ```env
+   # Configuration for API
+   API_URL=https://finnhub.io/api/v1/quote
+   SYMBOL=AAPL,MSFT,GOOGL
+   
+   # Authentication 
+   FINNHUB_API_KEY="your_finnhub_api_key_here"
+   ```
+
+## 🏃‍♂️ Running the Application
+
+You can run the application directly using:
 
 ```bash
 go run cmd/server/main.go
 ```
 
-หรือใช้ `go run` กับไฟล์หลักโดยตรง:
+The application will start fetching data and print it to the console. It will continue to refresh every 10 seconds until you terminate it (e.g., using `Ctrl+C`).
 
-```bash
-go run main.go
-```
+**Example Output:**
 
-## 🔌 API Endpoints
-
-### 1. HTTP Health Check
-
-ตรวจสอบสถานะของเซิร์ฟเวอร์
-
-- **Method**: `GET`
-- **Endpoint**: `/health`
-- **Response**: `200 OK`
-
-### 2. WebSocket Connection
-
-เชื่อมต่อเพื่อรับข้อมูลราคาหุ้นแบบ Real-time
-
-- **Method**: `GET`
-- **Endpoint**: `/ws/stock`
-- **Query Params**: `ticker` (e.g., `?ticker=PTT`)
-- **Response**: WebSocket Connection
-
-**ตัวอย่างการเชื่อมต่อ (JavaScript):**
-
-```javascript
-const ws = new WebSocket("ws://localhost:8080/ws/stock?ticker=PTT");
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log("Price:", data.price);
-  console.log("Last Update:", data.last_update);
-};
-
-ws.onclose = () => {
-  console.log("Connection closed");
-};
-```
-
-## 🧪 Testing
-
-### Test Health Check
-
-```bash
-curl http://localhost:8080/health
-```
-
-### Test WebSocket
-
-ใช้ `wscat` (ติดตั้งผ่าน npm: `npm install -g wscat`) หรือเครื่องมือ WebSocket Client อื่นๆ
-
-```bash
-wscat -c ws://localhost:8080/ws/stock?ticker=PTT
+```text
+Live Stock Price:
+Ticker: AAPL, Price: 173.50, Last Update: 2026-04-26 14:10:00
+Ticker: GOOGL, Price: 140.20, Last Update: 2026-04-26 14:10:00
+Ticker: MSFT, Price: 410.00, Last Update: 2026-04-26 14:10:00
+------------------------------------------------
 ```
 
 ## 🏗️ Architecture
 
-แอปพลิเคชันนี้ใช้สถาปัตยกรรมแบบ **Clean Architecture** โดยแบ่งเป็น 3 เลเยอร์หลัก:
+This application follows a **Clean Architecture** pattern adapted for a CLI tool, divided into 4 main layers:
 
-1. **Repository Layer** (`internal/repositories`)
-   - รับผิดชอบการดึงข้อมูล (ปัจจุบันเป็น Mock Data)
-   - มี Interface `StockRepository` สำหรับการสลับไปใช้ Database จริงในอนาคต
+1. **Controller Layer** (`internal/stock/controllers`)
+   - Acts as the entry point from the `main` function.
+   - Delegates requests to the Service layer.
 
-2. **Handler Layer** (`internal/handlers`)
-   - รับ HTTP Requests และ WebSocket Connections
-   - ประมวลผล Logic และเรียกใช้ Repository
-   - จัดการการส่งข้อมูลผ่าน WebSocket
+2. **Service Layer** (`internal/stock/services`)
+   - Contains the core business logic.
+   - Responsible for making HTTP requests to the external Finnhub API.
+   - Coordinates with the Repository layer.
 
-3. **Model Layer** (`internal/models`)
-   - กำหนดโครงสร้างข้อมูล (`structs`) ที่ใช้ในระบบ
+3. **Repository Layer** (`internal/stock/repositories`)
+   - Abstracts data creation and storage.
+   - Currently implements a mock storage that maps the fetched price to the `Stock` model.
 
-## 🔄 Future Enhancements
-
-- [ ] เชื่อมต่อกับ Database จริง (e.g., PostgreSQL, MongoDB)
-- [ ] เพิ่มระบบ Authentication และ Authorization
-- [ ] รองรับการส่งคำสั่งซื้อขาย (Buy/Sell)
-- [ ] เพิ่มกราฟราคา (Historical Data)
-- [ ] Implement Rate Limiting
-- [ ] เพิ่ม Logging และ Monitoring
+4. **Model Layer** (`internal/stock/models`)
+   - Defines the core data structures (`structs`) used throughout the application.
 
 ## 📝 License
 
